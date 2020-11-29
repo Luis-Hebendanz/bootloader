@@ -1,3 +1,62 @@
+# Unreleased
+
+# 0.9.11 – 2020-09-29
+
+- Update `Cargo.lock` to fix nightly breakage ([#129](https://github.com/rust-osdev/bootloader/pull/129))
+
+# 0.9.10 – 2020-09-24
+
+- Update `x86_64` again to version 0.12.1 to fix `const fn`-related build errors on latest nightly
+
+# 0.9.9 – 2020-09-20
+
+- Run `cargo update` to fix build errors of `x86_64` on latest nightly
+
+# 0.9.8 – 2020-07-17
+
+- Enable rlibc dependency only with `binary` feature ([#126](https://github.com/rust-osdev/bootloader/pull/126))
+
+# 0.9.7 – 2020-07-17
+
+- Make bootloader buildable with `-Zbuild-std` ([#125](https://github.com/rust-osdev/bootloader/pull/125))
+
+# 0.9.6 – 2020-07-16
+
+- Change 1st stage int 13h addressing ([#123](https://github.com/rust-osdev/bootloader/pull/123))
+
+# 0.9.5
+
+- Fix warning by renaming `_improper_ctypes_check` functions ([#122](https://github.com/rust-osdev/bootloader/pull/122))
+
+# 0.9.4
+
+- Add recursive_idx for boot info ([#116](https://github.com/rust-osdev/bootloader/pull/116))
+- Remove unused feature gates ([#118](https://github.com/rust-osdev/bootloader/pull/118))
+
+# 0.9.3
+
+- Update x86_64 dependency to version 0.11.0 ([#117](https://github.com/rust-osdev/bootloader/pull/117))
+
+# 0.9.2
+
+- **Nightly Breakage:** Use `llvm_asm!` instead of deprecated `asm!` ([#108](https://github.com/rust-osdev/bootloader/pull/108))
+
+# 0.9.1
+
+- SSE feature: remove inline assembly + don't set reserved bits ([#105](https://github.com/rust-osdev/bootloader/pull/105))
+
+# 0.9.0
+
+- **Breaking**: Identity-map complete vga region (0xa0000 to 0xc0000) ([#104](https://github.com/rust-osdev/bootloader/pull/104))
+
+# 0.8.9
+
+- Implement boot-info-address ([#101](https://github.com/rust-osdev/bootloader/pull/101))
+
+# 0.8.8
+
+- Add basic support for ELF thread local storage segments ([#96](https://github.com/rust-osdev/bootloader/pull/96))
+
 # 0.8.7
 
 - Fix docs.rs build (see commit 01671dbe449b85b3c0ea73c5796cc8f9661585ee)

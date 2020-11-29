@@ -1,14 +1,13 @@
 #![feature(lang_items)]
 #![feature(global_asm)]
-#![feature(step_trait)]
-#![feature(asm)]
-#![feature(nll)]
-#![feature(const_fn)]
+#![feature(llvm_asm)]
 #![no_std]
 #![no_main]
 
 #[cfg(not(target_os = "none"))]
 compile_error!("The bootloader crate must be compiled for the `x86_64-bootloader.json` target");
+
+extern crate rlibc;
 
 use bootloader::bootinfo::{BootInfo, FrameRange};
 use core::convert::TryInto;
@@ -19,7 +18,7 @@ use usize_conversions::usize_from;
 use x86_64::instructions::tlb;
 use x86_64::structures::paging::{
     frame::PhysFrameRange, page_table::PageTableEntry, Mapper, Page, PageTable, PageTableFlags,
-    PageTableIndex, PhysFrame, RecursivePageTable, Size2MiB, Size4KiB, UnusedPhysFrame,
+    PageTableIndex, PhysFrame, RecursivePageTable, Size2MiB, Size4KiB,
 };
 use x86_64::{PhysAddr, VirtAddr};
 
@@ -44,7 +43,7 @@ global_asm!(include_str!("video_mode/vga_320x200.s"));
 global_asm!(include_str!("video_mode/vga_text_80x25.s"));
 
 unsafe fn context_switch(boot_info: VirtAddr, entry_point: VirtAddr, stack_pointer: VirtAddr) -> ! {
-    asm!("call $1; ${:private}.spin.${:uid}: jmp ${:private}.spin.${:uid}" ::
+    llvm_asm!("call $1; ${:private}.spin.${:uid}: jmp ${:private}.spin.${:uid}" ::
          "{rsp}"(stack_pointer), "r"(entry_point), "{rdi}"(boot_info) :: "intel");
     ::core::hint::unreachable_unchecked()
 }
@@ -91,7 +90,7 @@ extern "C" {
 #[no_mangle]
 pub unsafe extern "C" fn stage_4() -> ! {
     // Set stack segment
-    asm!("mov bx, 0x0
+    llvm_asm!("mov bx, 0x0
           mov ss, bx" ::: "bx" : "intel");
 
     let kernel_start = 0x400000;
@@ -242,12 +241,15 @@ fn bootloader_main(
 
     // Map a page for the boot info structure
     let boot_info_page = {
-        let page: Page = Page::from_page_table_indices(
-            level4_entries.get_free_entry(),
-            PageTableIndex::new(0),
-            PageTableIndex::new(0),
-            PageTableIndex::new(0),
-        );
+        let page: Page = match BOOT_INFO_ADDRESS {
+            Some(addr) => Page::containing_address(VirtAddr::new(addr)),
+            None => Page::from_page_table_indices(
+                level4_entries.get_free_entry(),
+                PageTableIndex::new(0),
+                PageTableIndex::new(0),
+                PageTableIndex::new(0),
+            ),
+        };
         let frame = frame_allocator
             .allocate_frame(MemoryRegionType::BootInfo)
             .expect("frame allocation failed");
@@ -273,7 +275,7 @@ fn bootloader_main(
     };
 
     // Map kernel segments.
-    let stack_end = page_table::map_kernel(
+    let kernel_memory_info = page_table::map_kernel(
         kernel_start.phys(),
         kernel_stack_address,
         KERNEL_STACK_SIZE,
@@ -308,7 +310,7 @@ fn bootloader_main(
             unsafe {
                 page_table::map_page(
                     page,
-                    UnusedPhysFrame::new(frame),
+                    frame,
                     flags,
                     &mut rec_page_table,
                     &mut frame_allocator,
@@ -327,6 +329,7 @@ fn bootloader_main(
     let mut boot_info = BootInfo::new(
         memory_map,
         _smp_trampoline,
+        kernel_memory_info.tls_segment,
         recursive_page_table_addr.as_u64(),
         physical_memory_offset,
     );
@@ -355,7 +358,7 @@ fn bootloader_main(
     sse::enable_sse();
 
     let entry_point = VirtAddr::new(entry_point);
-    unsafe { context_switch(boot_info_addr, entry_point, stack_end) };
+    unsafe { context_switch(boot_info_addr, entry_point, kernel_memory_info.stack_end) };
 }
 
 fn enable_nxe_bit() {
