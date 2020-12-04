@@ -8,7 +8,24 @@ Written for the [second edition](https://github.com/phil-opp/blog_os/issues/360)
 
 ## Design
 
-TODO
+When you press the power button the computer loads the BIOS from some flash memory stored on the motherboard. The BIOS initializes and self tests the hardware then loads the first 512 bytes into memory from the media device (i.e. the cdrom or floppy disk). If the last two bytes equal 0xAA55 then the BIOS will jump to location 0x7C00 effectively transferring control to the bootloader. 
+At this point the CPU is running in 16 bit mode, meaning only the 16 bit registers are available. Also since the BIOS only loads the first 512 bytes this means our bootloader code has to stay below that limit, otherwise we’ll hit uninitialised memory! Using [Bios interrupt calls](https://en.wikipedia.org/wiki/BIOS_interrupt_call) the bootloader prints debug information to the screen.
+
+* stage_1.s
+This stage initializes the stack, enables the A20 line, loads the rest of
+the bootloader from disk, and jumps to stage_2.
+
+* stage_2.s
+This stage sets the target operating mode, loads the kernel from disk,
+creates an e820 memory map, enters protected mode, and jumps to the
+third stage.
+
+* stage_3.s
+This stage performs some checks on the CPU (cpuid, long mode), sets up an
+initial page table mapping (identity map the bootloader, map the P4
+recursively, map the kernel blob to 4MB), enables paging, switches to long
+mode, and jumps to stage_4.
+
 
 ## Configuration
 

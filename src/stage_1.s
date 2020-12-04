@@ -22,6 +22,10 @@ _start:
     # initialize stack
     mov sp, 0x7c00
 
+    #lea bx, _start
+    #call real_mode_print_hex
+    #test bx, bx
+
     lea si, boot_start_str
     call real_mode_println
 

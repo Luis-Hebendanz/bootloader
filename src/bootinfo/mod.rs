@@ -29,6 +29,7 @@ pub struct BootInfo {
     /// the memory map before passing it to the kernel. Regions marked as usable can be freely
     /// used by the kernel.
     pub memory_map: MemoryMap,
+    /// Function pointer to a cpu core init function
     pub smp_trampoline: unsafe extern "C" fn() -> !,
     /// The virtual address of the recursively mapped level 4 page table.
     #[cfg(feature = "recursive_page_table")]
@@ -44,6 +45,8 @@ pub struct BootInfo {
     #[cfg(feature = "map_physical_memory")]
     pub physical_memory_offset: u64,
     tls_template: TlsTemplate,
+    /// The amount of physical memory available in bytes
+    pub max_phys_memory: u64,
     _non_exhaustive: u8, // `()` is not FFI safe
 }
 
@@ -56,6 +59,7 @@ impl BootInfo {
         smp_trampoline: unsafe extern "C" fn() -> !,
         tls_template: Option<TlsTemplate>,
         recursive_page_table_addr: u64,
+        max_phys_memory: u64,
         physical_memory_offset: u64,
     ) -> Self {
         let tls_template = tls_template.unwrap_or(TlsTemplate {
@@ -67,6 +71,7 @@ impl BootInfo {
             memory_map,
             smp_trampoline,
             tls_template,
+            max_phys_memory,
             #[cfg(feature = "recursive_page_table")]
             recursive_page_table_addr,
             #[cfg(feature = "map_physical_memory")]

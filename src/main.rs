@@ -21,7 +21,7 @@ use x86_64::structures::paging::{
     PageTableIndex, PhysFrame, RecursivePageTable, Size2MiB, Size4KiB,
 };
 use x86_64::{PhysAddr, VirtAddr};
-
+use core::fmt::Write;
 // The bootloader_config.rs file contains some configuration constants set by the build script:
 // PHYSICAL_MEMORY_OFFSET: The offset into the virtual address space where the physical memory
 // is mapped if the `map_physical_memory` feature is activated.
@@ -85,6 +85,7 @@ extern "C" {
     static __bootloader_start: usize;
     static _p4: usize;
     fn _smp_trampoline() -> !;
+    // fn _start() -> !;
 }
 
 #[no_mangle]
@@ -140,6 +141,11 @@ fn bootloader_main(
         .map(|r| r.range.end_addr())
         .max()
         .expect("no physical memory regions found");
+
+    let max_phys_memory = memory_map.iter().fold(0_u64, |acc, &elem| {
+        let size =  elem.range.end_addr() - elem.range.start_addr();
+        acc + size
+    });
 
     // Extract required information from the ELF file.
     let mut preallocated_space = alloc_stack!([ProgramHeader64; 32]);
@@ -331,6 +337,7 @@ fn bootloader_main(
         _smp_trampoline,
         kernel_memory_info.tls_segment,
         recursive_page_table_addr.as_u64(),
+        max_phys_memory,
         physical_memory_offset,
     );
     boot_info.memory_map.sort();
@@ -374,7 +381,6 @@ fn enable_write_protect_bit() {
 #[panic_handler]
 #[no_mangle]
 pub fn panic(info: &PanicInfo) -> ! {
-    use core::fmt::Write;
     write!(printer::Printer, "{}", info).unwrap();
     loop {}
 }
