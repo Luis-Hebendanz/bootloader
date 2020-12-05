@@ -116,6 +116,7 @@ fn main() {
             process::exit(1);
         }
     });
+
     let kernel_file_name = kernel
         .file_name()
         .expect("KERNEL has no valid file name")
@@ -150,6 +151,7 @@ fn main() {
     let mut cmd = Command::new(llvm_size);
     cmd.arg(&kernel);
     let output = cmd.output().expect("failed to run llvm-size");
+    println!("cargo:warning={:?}", cmd);
     let output_str = String::from_utf8_lossy(&output.stdout);
     let second_line_opt = output_str.lines().skip(1).next();
     let second_line = second_line_opt.expect("unexpected llvm-size line output");
@@ -170,6 +172,7 @@ fn main() {
     cmd.arg("--strip-debug");
     cmd.arg(&kernel);
     cmd.arg(&stripped_kernel);
+    println!("cargo:warning={:?}", cmd);
     let exit_status = cmd
         .status()
         .expect("failed to run objcopy to strip debug symbols");
@@ -204,6 +207,7 @@ fn main() {
     cmd.current_dir(&out_dir);
     cmd.arg(&stripped_kernel_file_name);
     cmd.arg(&kernel_bin);
+    println!("cargo:warning={:?}", cmd);
     let exit_status = cmd.status().expect("failed to run objcopy");
     if !exit_status.success() {
         eprintln!("Error: Running objcopy failed");
@@ -223,6 +227,7 @@ fn main() {
     cmd.arg("crs");
     cmd.arg(&kernel_archive);
     cmd.arg(&kernel_bin);
+    println!("cargo:warning={:?}", cmd);
     let exit_status = cmd.status().expect("failed to run ar");
     if !exit_status.success() {
         eprintln!("Error: Running ar failed");

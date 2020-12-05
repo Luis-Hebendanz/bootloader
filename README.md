@@ -26,6 +26,29 @@ initial page table mapping (identity map the bootloader, map the P4
 recursively, map the kernel blob to 4MB), enables paging, switches to long
 mode, and jumps to stage_4.
 
+## Build chain
+The file `.cargo/config` defines a llvm target file called `x86_64-bootloader.json`.
+This file defines the architecture and tells llvm to use the linker script `linker.ld`.
+
+The `build.rs` file execute the llvm tools with our kernel as input:
+```bash
+# Check size of .text section of kernel if too small throw error
+llvm-size "../../target/x86_64-os/debug/svm_kernel"
+# Strip debug symbols from kernel to make loading faster
+llvm-objcopy "--strip-debug" "../../target/x86_64-os/debug/svm_kernel" "target/x86_64-bootloader/debug/build/bootloader-c8df27c930d8f65a/out/kernel_stripped-svm_kernel"
+# Rename the .data section to .kernel in the stripped kernel and rename 
+llvm-objcopy "-I" "binary" "-O" "elf64-x86-64" "--binary-architecture=i386:x86-64" "--rename-section" ".data=.kernel" "--redefine-sym" "_binary_kernel_stripped_svm_kernel_start=_kernel_start_addr" "--redefine-sym" "_binary_kernel_stripped_svm_kernel_end=_kernel_end_addr" "--redefine-sym" "_binary_kernel_stripped_svm_kernel_size=_kernel_size" "target/x86_64-bootloader/debug/build/bootloader-c8df27c930d8f65a/out/kernel_stripped-svm_kernel" "target/x86_64-bootloader/debug/build/bootloader-c8df27c930d8f65a/out/kernel_bin-svm_kernel.o"
+
+# Now create a static library out of it
+llvm-ar "crs" "bootloader/target/x86_64-bootloader/debug/build/bootloader-c8df27c930d8f65a/out/libkernel_bin-svm_kernel.a" "target/x86_64-bootloader/debug/build/bootloader-c8df27c930d8f65a/out/kernel_bin-svm_kernel.o"
+```
+Afterwards `build.rs` tells cargo to use the newly created static library to link against the bootloader, with the help of the linker script everything gets placed correctly in the
+resulting ELF file.
+The last step is to strip away the elf header so that the bios can jump directly to the bootloader `stage_1.s`. This is done with:
+```bash
+cargo objcopy -- -I elf64-x86-64 -O binary --binary-architecture=i386:x86-64 \
+  target/x86_64-bootloader/release/bootloader target/x86_64-bootloader/release/bootloader.bin
+```
 
 ## Configuration
 
