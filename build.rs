@@ -172,7 +172,6 @@ fn main() {
     cmd.arg("--strip-debug");
     cmd.arg(&kernel);
     cmd.arg(&stripped_kernel);
-    println!("cargo:warning={:?}", cmd);
     let exit_status = cmd
         .status()
         .expect("failed to run objcopy to strip debug symbols");
@@ -207,7 +206,6 @@ fn main() {
     cmd.current_dir(&out_dir);
     cmd.arg(&stripped_kernel_file_name);
     cmd.arg(&kernel_bin);
-    println!("cargo:warning={:?}", cmd);
     let exit_status = cmd.status().expect("failed to run objcopy");
     if !exit_status.success() {
         eprintln!("Error: Running objcopy failed");
