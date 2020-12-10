@@ -9,16 +9,10 @@
 second_stage_start_str: .asciz "Booting (second stage)..."
 kernel_load_failed_str: .asciz "Failed to load kernel from disk"
 
-kernel_load_failed:
-    lea si, [kernel_load_failed_str]
-    call real_mode_println
 kernel_load_failed_spin:
     jmp kernel_load_failed_spin
 
 stage_2:
-    lea si, [second_stage_start_str]
-    call real_mode_println
-
 set_target_operating_mode:
     # Some BIOSs assume the processor will only operate in Legacy Mode. We change the Target
     # Operating Mode to "Long Mode Target Only", so the firmware expects each CPU to enter Long Mode
@@ -59,7 +53,7 @@ load_next_kernel_block_from_disk:
     lea si, dap
     mov ah, 0x42
     int 0x13
-    jc kernel_load_failed
+    /* jc kernel_load_failed */
 
     # copy block to 2MiB
     push ecx
@@ -82,6 +76,7 @@ load_next_kernel_block_from_disk:
     sub ecx, 1
     jnz load_next_kernel_block_from_disk
 
+stage_2_second_boot:
 create_memory_map:
     lea di, es:[_memory_map]
     call do_e820

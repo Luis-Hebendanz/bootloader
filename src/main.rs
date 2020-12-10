@@ -74,6 +74,7 @@ impl IdentityMappedAddr {
 
 // Symbols defined in `linker.ld`
 extern "C" {
+    static mut _first_boot: u16;
     static mmap_ent: usize;
     static _memory_map: usize;
     static _kernel_start_addr: usize;
@@ -93,6 +94,16 @@ pub unsafe extern "C" fn stage_4() -> ! {
     // Set stack segment
     llvm_asm!("mov bx, 0x0
           mov ss, bx" ::: "bx" : "intel");
+
+    while _first_boot == 0 {
+        write!(printer::Printer, "Core waits").unwrap();
+    }
+
+    for _ in 0..100 {
+        write!(printer::Printer, "First boot value: {:#x}", _first_boot).unwrap();
+    }
+    _first_boot = 0;
+
 
     let kernel_start = 0x400000;
     let kernel_size = &_kernel_size as *const _ as u64;
@@ -132,7 +143,7 @@ fn bootloader_main(
     use fixedvec::FixedVec;
     use xmas_elf::program::{ProgramHeader, ProgramHeader64};
 
-    printer::Printer.clear_screen();
+    // printer::Printer.clear_screen();
 
     let mut memory_map = boot_info::create_from(memory_map_addr, memory_map_entry_count);
 

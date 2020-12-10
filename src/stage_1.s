@@ -7,6 +7,9 @@
 # the bootloader from disk, and jumps to stage_2.
 
 _start:
+    # Disable interrupts
+    cli
+
     # zero segment registers
     xor ax, ax
     mov ds, ax
@@ -21,13 +24,7 @@ _start:
 
     # initialize stack
     mov sp, 0x7c00
-
-    #lea bx, _start
-    #call real_mode_print_hex
-    #test bx, bx
-
-    lea si, boot_start_str
-    call real_mode_println
+_start_ap:
 
 enable_a20:
     # enable A20-Line via IO-Port 92, might not work on all motherboards
@@ -41,8 +38,6 @@ enable_a20_after:
 
 
 enter_protected_mode:
-    # clear interrupts
-    cli
     push ds
     push es
 
@@ -74,12 +69,10 @@ unreal_mode:
     mov eax, 0xb8f00       # note 32 bit offset
     mov word ptr ds:[eax], bx
 
-check_int13h_extensions:
-    mov ah, 0x41
-    mov bx, 0x55aa
-    # dl contains drive number
-    int 0x13
-    jc no_int13h_extensions
+    # Check if this is the first time we boot
+    mov bx, word ptr [_first_boot]
+    test bx, bx
+    jz stage_2_second_boot
 
 load_rest_of_bootloader_from_disk:
     lea eax, _rest_of_bootloader_start_addr
@@ -111,8 +104,7 @@ load_rest_of_bootloader_from_disk:
     lea si, dap
     mov ah, 0x42
     int 0x13
-    jc rest_of_bootloader_load_failed
-    
+
     # reset segment to 0
     mov word ptr [dap_buffer_seg], 0
 
@@ -123,88 +115,6 @@ jump_to_second_stage:
 spin:
     jmp spin
 
-# print a string and a newline
-# IN
-#   si: points at zero-terminated String
-# CLOBBER
-#   ax
-real_mode_println:
-    call real_mode_print
-    mov al, 13 # \r
-    call real_mode_print_char
-    mov al, 10 # \n
-    jmp real_mode_print_char
-
-# print a string
-# IN
-#   si: points at zero-terminated String
-# CLOBBER
-#   ax
-real_mode_print:
-    cld
-real_mode_print_loop:
-    # note: if direction flag is set (via std)
-    # this will DECREMENT the ptr, effectively
-    # reading/printing in reverse.
-    lodsb al, BYTE PTR [si]
-    test al, al
-    jz real_mode_print_done
-    call real_mode_print_char
-    jmp real_mode_print_loop
-real_mode_print_done:
-    ret
-
-# print a character
-# IN
-#   al: character to print
-# CLOBBER
-#   ah
-real_mode_print_char:
-    mov ah, 0x0e
-    int 0x10
-    ret
-
-# print a number in hex
-# IN
-#   bx: the number
-# CLOBBER
-#   al, cx
-real_mode_print_hex:
-    mov cx, 4
-.lp:
-    mov al, bh
-    shr al, 4
-
-    cmp al, 0xA
-    jb .below_0xA
-
-    add al, 'A' - 0xA - '0'
-.below_0xA:
-    add al, '0'
-
-    call real_mode_print_char
-
-    shl bx, 4
-    loop .lp
-
-    ret
-
-real_mode_error:
-    call real_mode_println
-    jmp spin
-
-no_int13h_extensions:
-    lea si, no_int13h_extensions_str
-    jmp real_mode_error
-
-rest_of_bootloader_load_failed:
-    lea si, rest_of_bootloader_load_failed_str
-    jmp real_mode_error
-
-boot_start_str: .asciz "Booting (first stage)..."
-error_str: .asciz "Error: "
-no_int13h_extensions_str: .asciz "No support for int13h extensions"
-rest_of_bootloader_load_failed_str: .asciz "Failed to load rest of bootloader"
 
 gdt32info:
    .word gdt32_end - gdt32 - 1  # last byte in table
@@ -244,6 +154,9 @@ dap_buffer_seg:
     .word 0 # segment of memory buffer
 dap_start_lba:
     .quad 0 # start logical block address
+
+_first_boot:
+    .word 1
 
 .org 510
 .word 0xaa55 # magic number for bootable disk
