@@ -5,24 +5,24 @@
 .code16
 
 _smp_trampoline:
-    # Disable interrupts
-    cli
+    /* # Disable interrupts */
+    /* cli */
 
-    # zero segment registers
-    xor ax, ax
-    mov ds, ax
-    mov es, ax
-    mov ss, ax
-    mov fs, ax
-    mov gs, ax
+    /* # zero segment registers */
+    /* xor ax, ax */
+    /* mov ds, ax */
+    /* mov es, ax */
+    /* mov ss, ax */
+    /* mov fs, ax */
+    /* mov gs, ax */
 
-    # clear the direction flag (e.g. go forward in memory when using
-    # instructions like lodsb)
-    cld
+    /* # clear the direction flag (e.g. go forward in memory when using */
+    /* # instructions like lodsb) */
+    /* cld */
 
-    # initialize stack
-    mov sp, 0x7c00
-		jmp _start_ap
+    /* # initialize stack */
+    /* mov sp, 0x7c00 */
+		jmp _init_core
 
 
 .boot_msg: .asciz "Booting (first stage)... "

@@ -5,8 +5,11 @@
 
 # This stage initializes the stack, enables the A20 line, loads the rest of
 # the bootloader from disk, and jumps to stage_2.
-
 _start:
+.fill 200, 1, 0
+
+
+_init_core:
     # Disable interrupts
     cli
 
@@ -24,7 +27,7 @@ _start:
 
     # initialize stack
     mov sp, 0x7c00
-_start_ap:
+    call smp_wait
 
 enable_a20:
     # enable A20-Line via IO-Port 92, might not work on all motherboards
@@ -35,7 +38,6 @@ enable_a20:
     and al, 0xFE
     out 0x92, al
 enable_a20_after:
-
 
 enter_protected_mode:
     push ds
@@ -115,6 +117,16 @@ jump_to_second_stage:
 spin:
     jmp spin
 
+smp_wait:
+    push bx
+    mov bx, word ptr [_stage_counter]
+    test bx, bx
+    jz .ret
+    inc word ptr [_stage_counter]
+    jmp spin
+    .ret:
+    pop bx
+    ret
 
 gdt32info:
    .word gdt32_end - gdt32 - 1  # last byte in table
@@ -157,6 +169,8 @@ dap_start_lba:
 
 _first_boot:
     .word 1
+_stage_counter:
+    .word 0
 
 .org 510
 .word 0xaa55 # magic number for bootable disk
