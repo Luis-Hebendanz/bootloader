@@ -13,6 +13,9 @@ stage_3:
     mov es, bx # set extra segment
     mov ss, bx # set stack segment
 
+    lea si, boot_third_stage_str
+    call vga_println
+
 check_cpu:
     call check_cpuid
     call check_long_mode

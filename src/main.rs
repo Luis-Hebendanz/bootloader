@@ -97,6 +97,7 @@ pub unsafe extern "C" fn stage_4() -> ! {
 
     while _first_boot == 0 {
         write!(printer::Printer, "Core waits").unwrap();
+        panic!("Core waits");
     }
 
     for _ in 0..100 {
