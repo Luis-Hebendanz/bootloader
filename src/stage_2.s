@@ -9,6 +9,25 @@
 second_stage_start_str: .asciz "Booting (second stage)..."
 kernel_load_failed_str: .asciz "Failed to load kernel from disk"
 
+unfresh_boot:
+    # Unfresh boot
+    cli
+    lgdt [gdt32info]
+
+    mov eax, cr0
+    or al, 1    # set protected mode bit
+    mov cr0, eax
+
+    mov bx, 0x10
+    mov ds, bx # set data segment
+    mov es, bx # set extra segment
+    mov ss, bx # set stack segment
+
+    push 0x8
+    lea eax, [check_cpu]
+    push eax
+    retf
+
 kernel_load_failed:
     lea si, [kernel_load_failed_str]
     call real_mode_println

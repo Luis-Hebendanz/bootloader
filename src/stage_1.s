@@ -7,6 +7,11 @@
 # the bootloader from disk, and jumps to stage_2.
 
 _start:
+    jmp after_stack
+    start_stack:
+        .fill 18, 1,0
+
+    after_stack:
     # zero segment registers
     xor ax, ax
     mov ds, ax
@@ -20,7 +25,10 @@ _start:
     cld
 
     # initialize stack
-    mov sp, 0x7c00
+    lea sp, start_stack
+
+    cmp byte ptr [fresh_boot], 1
+    jne unfresh_boot
 
     lea si, boot_start_str
     call real_mode_println
@@ -240,6 +248,9 @@ dap_buffer_seg:
     .word 0 # segment of memory buffer
 dap_start_lba:
     .quad 0 # start logical block address
+
+# Fresh boot
+fresh_boot: .byte 1
 
 .org 510
 .word 0xaa55 # magic number for bootable disk

@@ -3,6 +3,8 @@
 #![feature(llvm_asm)]
 #![no_std]
 #![no_main]
+#![feature(abi_x86_interrupt)]
+#![feature(min_const_generics)]
 
 #[cfg(not(target_os = "none"))]
 compile_error!("The bootloader crate must be compiled for the `x86_64-bootloader.json` target");
@@ -55,6 +57,9 @@ mod page_table;
 mod printer;
 #[cfg(feature = "sse")]
 mod sse;
+mod gdt;
+mod interrupts;
+mod default_interrupt;
 
 pub struct IdentityMappedAddr(PhysAddr);
 
@@ -74,7 +79,7 @@ impl IdentityMappedAddr {
 
 // Symbols defined in `linker.ld`
 extern "C" {
-    static mut _first_boot: u16;
+    static mut fresh_boot: u8;
     static mmap_ent: usize;
     static _memory_map: usize;
     static _kernel_start_addr: usize;
@@ -91,19 +96,31 @@ extern "C" {
 
 #[no_mangle]
 pub unsafe extern "C" fn stage_4() -> ! {
+
+    use uart_16550::SerialPort;
+    let mut serial_port = SerialPort::new(0x3F8);
+    serial_port.init();
+    serial_port.write_str("Hello World\n").unwrap();
+
     // Set stack segment
     llvm_asm!("mov bx, 0x0
           mov ss, bx" ::: "bx" : "intel");
 
-    while _first_boot == 0 {
-        write!(printer::Printer, "Core waits").unwrap();
-        panic!("Core waits");
+    interrupts::load_idt();
+    if fresh_boot == 0 {
+        // llvm_asm!("cli");
+        // llvm_asm!("hlt");
+        llvm_asm!("push rax":::"memory" : "intel");
+        llvm_asm!("nop");
+        llvm_asm!("nop");
+        llvm_asm!("nop");
+        llvm_asm!("pop rax":::"memory" : "intel");
+        // write!(printer::Printer, "Core waits").unwrap();
+        loop {}
+        // panic!("Core waits");
     }
 
-    for _ in 0..100 {
-        write!(printer::Printer, "First boot value: {:#x}", _first_boot).unwrap();
-    }
-    _first_boot = 0;
+    fresh_boot = 0;
 
 
     let kernel_start = 0x400000;

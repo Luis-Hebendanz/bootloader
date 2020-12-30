@@ -151,7 +151,6 @@ fn main() {
     let mut cmd = Command::new(llvm_size);
     cmd.arg(&kernel);
     let output = cmd.output().expect("failed to run llvm-size");
-    println!("cargo:warning={:?}", cmd);
     let output_str = String::from_utf8_lossy(&output.stdout);
     let second_line_opt = output_str.lines().skip(1).next();
     let second_line = second_line_opt.expect("unexpected llvm-size line output");
@@ -225,7 +224,6 @@ fn main() {
     cmd.arg("crs");
     cmd.arg(&kernel_archive);
     cmd.arg(&kernel_bin);
-    println!("cargo:warning={:?}", cmd);
     let exit_status = cmd.status().expect("failed to run ar");
     if !exit_status.success() {
         eprintln!("Error: Running ar failed");

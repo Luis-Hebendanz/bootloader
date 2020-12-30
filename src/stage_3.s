@@ -4,8 +4,14 @@
 
 # This stage performs some checks on the CPU (cpuid, long mode), sets up an
 # initial page table mapping (identity map the bootloader, map the P4
-# recursively, map the kernel blob to 4MB), enables paging, switches to long
-# mode, and jumps to stage_4.
+# recursively, map the kernel blob to 4MB in RAM accessible at 2MB),
+# enables paging, uses 2MB huge pages, switches to long mode, and jumps to stage_4.
+# Page tables are mapped like this:
+# CR3: 0x4000 -> P4[0] -> P3[0] -> P2[0] -> P1
+# with writeable, user accessible, huge pages flags.
+#
+
+
 
 stage_3:
     mov bx, 0x10

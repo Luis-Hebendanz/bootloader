@@ -10,6 +10,7 @@ pub static CURRENT_OFFSET: AtomicUsize = AtomicUsize::new(160);
 pub struct Printer;
 
 impl Printer {
+    #[allow(dead_code)]
     pub fn clear_screen(&mut self) {
         for i in 0..SCREEN_SIZE {
             unsafe {
